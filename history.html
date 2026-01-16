@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendify – Event History</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --green: #16a34a;
+  --green-dark: #166534;
+  --border: #e5e7eb;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #ffffff;
+  margin: 0;
+  color: #1f2937;
+}
+
+.container {
+  margin: 2rem;
+}
+
+h1 {
+  margin-bottom: .6rem;
+  color: var(--green-dark);
+}
+
+/* SEARCH BAR */
+.search-bar input {
+  margin-top: .6rem;
+  width: 280px;
+  padding: .65rem 1rem;
+  border-radius: .6rem;
+  border: 1px solid var(--border);
+  font-size: .9rem;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+/* TABLE */
+table {
+  margin-top: 1.6rem;
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 1rem;
+  overflow: hidden;
+
+  box-shadow:
+    0 0 0 1px rgba(22,163,74,0.15),
+    0 12px 30px rgba(0,0,0,0.07);
+}
+
+/* HEADER */
+thead {
+  background: var(--green);
+}
+
+thead th {
+  color: #ffffff;
+  font-size: .9rem;
+  font-weight: 600;
+  padding: 1.2rem .9rem;
+  text-align: center;
+}
+
+/* BODY CELLS */
+th, td {
+  padding: 1.1rem .9rem;
+  text-align: center;
+  font-size: .9rem;
+  word-wrap: break-word;
+}
+
+/* ROW HOVER */
+tbody tr:hover {
+  background: #f0fdf4;
+}
+
+/* TIME ROW */
+.time-row {
+  display: flex;
+  justify-content: center;
+  gap: .6rem;
+  white-space: nowrap;
+}
+
+/* STATUS */
+.attended {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.partial {
+  color: #ca8a04;
+  font-weight: 600;
+}
+
+.missed {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* ===== MOBILE: SMALLER TABLE ===== */
+@media (max-width: 768px) {
+  th, td {
+    padding: .5rem .4rem;
+    font-size: .75rem;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+  }
+
+  .search-bar input {
+    width: 100%;
+    max-width: 260px;
+  }
+
+  table {
+    box-shadow:
+      0 0 0 1px rgba(22,163,74,0.1),
+      0 6px 12px rgba(0,0,0,0.05);
+  }
+}
+/* ===== MOBILE: SMALLER TABLE ===== */
+@media (max-width: 375px) {
+  th, td {
+    padding: .9rem .4rem;
+    font-size: 12px;
+  }
+
+  h1 {
+    font-size: 12px;
+  }
+
+  .search-bar input {
+    width: 100%;
+    max-width: 260px;
+  }
+
+  table {
+    box-shadow:
+      0 0 0 1px rgba(22,163,74,0.1),
+      0 6px 12px rgba(0,0,0,0.05);
+  }
+}
+
+
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>Event History</h1>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Search events...">
+</div>
+
+<table id="historyTable">
+<thead>
+<tr>
+  <th>Event</th>
+  <th>Date</th>
+  <th>Location</th>
+  <th>Morning (IN - OUT)</th>
+  <th>Afternoon (IN - OUT)</th>
+  <th>Status</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+  <td>Compesta Days 2025</td>
+  <td>Dec 5, 2025</td>
+  <td>Main Auditorium</td>
+  <td>
+    <div class="time-row">
+      <span>8:05 AM</span> - <span>12:00 PM</span>
+    </div>
+  </td>
+  <td>
+    <div class="time-row">
+      <span>❌</span> - <span>❌</span>
+    </div>
+  </td>
+  <td><span class="partial">Partial</span></td>
+</tr>
+
+<tr>
+  <td>Science Fair</td>
+  <td>Nov 15, 2025</td>
+  <td>Gymnasium</td>
+  <td>
+    <div class="time-row">
+      <span>9:00 AM</span> - <span>11:30 AM</span>
+    </div>
+  </td>
+  <td>
+    <div class="time-row">
+      <span>1:05 PM</span> - <span>3:55 PM</span>
+    </div>
+  </td>
+  <td><span class="attended">Complete</span></td>
+</tr>
+
+<tr>
+  <td>Math Workshop</td>
+  <td>Nov 28, 2025</td>
+  <td>Room 204</td>
+  <td>
+    <div class="time-row">
+      <span>❌</span> - <span>❌</span>
+    </div>
+  </td>
+  <td>
+    <div class="time-row">
+      <span>❌</span> - <span>❌</span>
+    </div>
+  </td>
+  <td><span class="missed">Missed</span></td>
+</tr>
+
+</tbody>
+</table>
+
+</div>
+
+<script>
+/* SEARCH FILTER */
+document.getElementById("searchInput").addEventListener("keyup", e => {
+  const value = e.target.value.toLowerCase();
+  document.querySelectorAll("#historyTable tbody tr").forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(value)
+      ? "" : "none";
+  });
+});
+</script>
+
+</body>
+</html>

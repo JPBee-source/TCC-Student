@@ -1,0 +1,754 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendify Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+  <div class="grid">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <!-- GREETING CARD -->
+      <div class="greeting-card">
+        <div class="background-image"></div>
+        <div class="greeting-text">
+         <h1 id="greeting">Hello, <firstname>!</h1>
+          <p>Welcome to Attendify</p>
+          <div class="qr-code">
+            <img src="images/QR.png" alt="QR code">
+          </div>
+        </div>
+        <div class="greeting-image">
+          <img src="images/students.png" alt="Illustration">
+        </div>
+      </div>
+
+      <!-- SMALL CARDS -->
+      <div class="small-cards">
+        <!-- TODAY CARD -->
+        <div class="today-card">
+            <h2>
+              <span class="title-icon material-icons">today</span>
+              Today
+            </h2>
+            <div id="todayEvents"></div>
+          </div>
+
+
+<!-- ANNOUNCEMENTS CARD EXAMPLES -->
+<div class="announcement-card">
+  <h2>
+    <span class="title-icon material-icons">announcement</span>
+    Announcements
+  </h2>
+</div>
+
+
+
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="right-column">
+      <!-- UPCOMING EVENTS -->
+       <div class="right-panel">
+          <h2>
+            <span class="title-icon material-icons">event</span>
+            Upcoming Events
+          </h2>
+          <div id="upcomingEventsContainer"></div>
+        </div>
+
+      <!-- ATTENDANCE SUMMARY -->
+      <div class="attendance-summary">
+        <h2>
+          <span class="title-icon material-icons">fact_check</span>
+          Attendance Summary
+        </h2>
+        <div class="summary-grid">
+          <div><p>Attended</p><p>5</p></div>
+          <div><p>Missed</p><p>2</p></div>
+          <div><p>Last Event</p><p>Compesta Days 2025</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div id="qrModal" class="qr-modal">
+  <span class="close-modal">&times;</span>
+  <img class="qr-modal-content" id="qrModalImg">
+  <p>Scan this QR code at the event</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://snyzylwynzwzchivczms.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueXp5bHd5bnp3emNoaXZjem1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NTM5NDQsImV4cCI6MjA4MTAyOTk0NH0.QBBdQUqS_wpo6CTl4mppziCCbiigq8Fqg9KjsVfcmMM";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const modal = document.getElementById("qrModal");
+const modalImg = document.getElementById("qrModalImg");
+const qrImg = document.querySelector(".greeting-card .qr-code img");
+const closeBtn = document.querySelector(".close-modal");
+
+let timer = null;
+async function loadAdminProfile() {
+    try {
+        // Get the stored admin email from localStorage
+        const storedUser = JSON.parse(localStorage.getItem('adminUser')) || { email: 'admin@gmail.com' };
+
+        // Fetch firstname from the 'Student' table
+        const { data, error } = await supabaseClient
+            .from('Student')          // Table name
+            .select('firstname')      // Only get firstname
+            .eq('email', storedUser.email)
+            .single();
+
+        if (error || !data) {
+            console.error('Error fetching admin profile:', error);
+            return;
+        }
+
+        // Update the greeting <h1> by id, keeping "Hello, ..."
+        const greeting = document.getElementById('greeting');
+        greeting.textContent = `Hello, ${data.firstname || 'Student'}!`;
+
+    } catch (err) {
+        console.error('Unexpected error fetching profile:', err);
+    }
+}
+
+// Auto-run when the page is fully loaded
+document.addEventListener('DOMContentLoaded', loadAdminProfile);
+
+
+// --- Load logged-in student from localStorage ---
+const student = JSON.parse(localStorage.getItem("adminUser"));
+
+async function loadStudentQR() {
+    if (!student) return;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from("Student")
+            .select("qr")
+            .eq("id", student.id)
+            .single();
+
+        if (error) throw error;
+
+        if (data && data.qr) {
+            qrImg.src = data.qr;
+        }
+
+        qrImg.style.filter = "blur(3px)";
+        qrImg.style.transition = "filter 0.3s ease";
+
+    } catch (err) {
+        console.error("Failed to load QR code:", err.message);
+    }
+}
+
+loadStudentQR();
+
+// --- Function to handle scanned QR and show student info ---
+async function handleScannedQR(qrContent) {
+    try {
+        // QR format: "student:123"
+        const parts = qrContent.split(":");
+        if (parts[0] !== "student") throw new Error("Invalid QR code");
+
+        const studentId = parseInt(parts[1]);
+
+        // Fetch full student row
+        const { data, error } = await supabaseClient
+            .from("Student")
+            .select("id, firstname, middlename, lastname, extension, email, studentid, course, year, gender, picture, organizer")
+            .eq("id", studentId)
+            .single();
+
+        if (error || !data) throw new Error("Student not found");
+
+        // Show modal
+        modal.style.display = "flex";
+        document.body.style.overflow = "hidden";
+
+        // Set QR image
+        modalImg.src = data.qr || qrImg.src; // fallback to logged-in student's QR if needed
+
+        // Display student info
+        studentInfoContainer.innerHTML = `
+            <p><strong>ID:</strong> ${data.id}</p>
+            <p><strong>Student ID:</strong> ${data.studentid}</p>
+            <p><strong>Name:</strong> ${data.firstname} ${data.middlename} ${data.lastname} ${data.extension || ""}</p>
+            <p><strong>Email:</strong> ${data.email}</p>
+            <p><strong>Course:</strong> ${data.course}</p>
+            <p><strong>Year:</strong> ${data.year}</p>
+            <p><strong>Gender:</strong> ${data.gender}</p>
+            <p><strong>Organizer:</strong> ${data.organizer}</p>
+            ${data.picture ? `<p><strong>Picture:</strong><br><img src="${data.picture}" alt="Student Picture" style="width:120px;height:120px;"></p>` : ""}
+        `;
+
+        // Reset auto-close timer
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+            modal.style.display = "none";
+            document.body.style.overflow = "";
+        }, 5000);
+
+    } catch (err) {
+        console.error(err.message);
+        alert(err.message);
+    }
+}
+
+// --- Modal functionality (unchanged) ---
+qrImg.onclick = function () {
+    modalImg.src = this.src;
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+
+    if (timer) clearTimeout(timer);
+
+    timer = setTimeout(() => {
+        modal.style.display = "none";
+        document.body.style.overflow = "";
+    }, 5000);
+};
+
+closeBtn.onclick = function() {
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+};
+
+modal.onclick = function(e) {
+    if (e.target === modal) {
+        modal.style.display = "none";
+        document.body.style.overflow = "";
+    }
+};
+
+// Utility: get time range from available columns
+function getTimeRange(event) {
+  if (event.morningin && event.morningout) {
+    return `${event.morningin} - ${event.morningout}`;
+  }
+  if (event.afternoonin && event.afternoonout) {
+    return `${event.afternoonin} - ${event.afternoonout}`;
+  }
+  if (event.eveningin && event.eveningout) {
+    return `${event.eveningin} - ${event.eveningout}`;
+  }
+  return "Time not specified";
+}
+function mergeEvents(events) {
+  const grouped = {};
+
+  events.forEach(e => {
+    const key = `${e.eventname}-${e.startdate}-${e.enddate}`;
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        eventname: e.eventname,
+        startdate: e.startdate,
+        enddate: e.enddate,
+        organizer: e.organizer,
+        description: e.description,
+        times: []
+      };
+    }
+
+    if (e.morningin && e.morningout)
+      grouped[key].times.push(`${e.morningin} - ${e.morningout}`);
+
+    if (e.afternoonin && e.afternoonout)
+      grouped[key].times.push(`${e.afternoonin} - ${e.afternoonout}`);
+
+    if (e.eveningin && e.eveningout)
+      grouped[key].times.push(`${e.eveningin} - ${e.eveningout}`);
+  });
+
+  return Object.values(grouped);
+}
+
+function formatTime(time) {
+  if (!time) return null;
+
+  const [h, m] = time.split(":");
+  const date = new Date();
+  date.setHours(h, m);
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+function groupEvents(events) {
+  const map = {};
+
+  events.forEach(e => {
+    // group ONLY if eventname + startdate + enddate match
+    const key = `${e.eventname}-${e.startdate}-${e.enddate}`;
+
+    if (!map[key]) {
+      map[key] = {
+        eventname: e.eventname,
+        startdate: e.startdate,
+        enddate: e.enddate,
+        organizer: e.organizer,
+        description: e.description,
+        times: []
+      };
+    }
+
+    const ranges = [
+      [e.morningin, e.morningout],
+      [e.afternoonin, e.afternoonout],
+      [e.eveningin, e.eveningout]
+    ];
+
+    ranges.forEach(([start, end]) => {
+      if (start && end) {
+        map[key].times.push(
+          `${formatTime(start)} – ${formatTime(end)}`
+        );
+      }
+    });
+  });
+
+  return Object.values(map);
+}
+
+/* ================= LOAD TODAY EVENTS ================= */
+async function loadTodayEvents() {
+  const today = new Date();
+  const todayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+
+  const todayFormatted = today.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "Asia/Manila"
+  });
+
+  const { data, error } = await supabaseClient
+    .from("Event")
+    .select("*");
+
+  const container = document.getElementById("todayEvents");
+  container.innerHTML = "";
+
+  if (error) {
+    console.error(error);
+    container.innerHTML = "<p>Failed to load events.</p>";
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = "<p>No events happening today.</p>";
+    return;
+  }
+
+  // Separate single-day and multi-day events
+  const singleDayEvents = [];
+  const multiDayEvents = [];
+
+  data.forEach(ev => {
+    const start = new Date(ev.startdate);
+    const end = ev.enddate ? new Date(ev.enddate) : start;
+
+    start.setHours(0,0,0,0);
+    end.setHours(0,0,0,0);
+
+    if (start.getTime() === end.getTime()) {
+      singleDayEvents.push(ev);
+    } else {
+      multiDayEvents.push(ev);
+    }
+  });
+
+  // Single-day event names happening today
+  const singleDayNamesToday = new Set(
+    singleDayEvents
+      .filter(ev =>
+        new Date(ev.startdate).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }) === todayStr
+      )
+      .map(ev => ev.eventname)
+  );
+
+  const finalEvents = [];
+
+  // Add single-day events today
+  singleDayEvents.forEach(ev => {
+    const evDate = new Date(ev.startdate).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+    if (evDate === todayStr) {
+      finalEvents.push({ ...ev, displayDate: todayFormatted });
+    }
+  });
+
+  // Add multi-day events (no conflict)
+  multiDayEvents.forEach(ev => {
+    const start = new Date(ev.startdate);
+    const end = ev.enddate ? new Date(ev.enddate) : start;
+
+    start.setHours(0,0,0,0);
+    end.setHours(0,0,0,0);
+
+    const todayCopy = new Date(today);
+    todayCopy.setHours(0,0,0,0);
+
+    if (todayCopy >= start && todayCopy <= end) {
+      if (!singleDayNamesToday.has(ev.eventname)) {
+        finalEvents.push({ ...ev, displayDate: todayFormatted });
+      }
+    }
+  });
+
+  if (finalEvents.length === 0) {
+    container.innerHTML = "<p>No events happening today.</p>";
+    return;
+  }
+
+  // Render events
+  finalEvents.forEach(event => {
+    const card = document.createElement("div");
+    card.className = "today-event";
+
+    card.innerHTML = `
+      <div class="icon-bg">
+        <span class="material-icons">calendar_today</span>
+      </div>
+      <div class="event-text">
+        <p><strong>${event.eventname}</strong></p>
+        <p>${event.times?.join(" | ") || ""}</p>
+        <p>${event.displayDate}</p>
+        <p>Organizer: ${event.organizer}</p>
+        <p>${event.description || ""}</p>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+/* ================= REALTIME TODAY EVENTS ================= */
+supabaseClient
+  .channel("realtime-today-events")
+  .on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "Event" },
+    () => {
+      loadTodayEvents();
+    }
+  )
+  .subscribe();
+
+/* ================= INITIAL LOAD ================= */
+loadTodayEvents();
+
+
+/* ================= LOAD UPCOMING EVENTS ================= */
+async function loadUpcomingEvents() {
+  const container = document.getElementById("upcomingEventsContainer");
+  if (!container) return;
+
+  const { data: events, error } = await supabaseClient
+    .from("Event")
+    .select("*");
+
+  if (error) {
+    console.error("Failed to load events:", error);
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const singleDateEvents = events.filter(e => e.startdate === e.enddate);
+  const multiDateEvents = events.filter(e => e.startdate !== e.enddate);
+
+  // Map single-date events by date
+  const singleDateMap = {};
+  singleDateEvents.forEach(e => {
+    const dateStr = new Date(e.startdate).toDateString();
+    if (!singleDateMap[dateStr]) singleDateMap[dateStr] = [];
+    singleDateMap[dateStr].push(e.eventname);
+  });
+
+  const displayEvents = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Single-date events
+  singleDateEvents.forEach(e => {
+    const eventDate = new Date(e.startdate);
+    eventDate.setHours(0, 0, 0, 0);
+    if (eventDate > today) {
+      displayEvents.push({ date: eventDate, event: e });
+    }
+  });
+
+  // Multi-date events
+  multiDateEvents.forEach(e => {
+    const start = new Date(e.startdate);
+    const end = new Date(e.enddate);
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toDateString();
+      const current = new Date(d);
+      current.setHours(0, 0, 0, 0);
+
+      if (current <= today) continue;
+      if (singleDateMap[dateStr]?.includes(e.eventname)) continue;
+
+      displayEvents.push({ date: new Date(d), event: e });
+    }
+  });
+
+  // Sort by date
+  displayEvents.sort((a, b) => a.date - b.date);
+
+  // No upcoming events
+  if (displayEvents.length === 0) {
+    const div = document.createElement("div");
+    div.className = "upcoming-event no-events";
+    div.innerHTML = `<p>No upcoming events that are happening.</p>`;
+    container.appendChild(div);
+    return;
+  }
+
+  // Render events
+  displayEvents.forEach(({ date, event }) => {
+    const dateStr = date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+
+    const startTime = event.starttime || "";
+    const endTime = event.endtime || "";
+    let timeStr = "";
+
+    if (startTime && endTime) timeStr = `${startTime} - ${endTime} | `;
+    else if (startTime) timeStr = `${startTime} | `;
+
+    const div = document.createElement("div");
+    div.className = "upcoming-event";
+    div.innerHTML = `
+      <p><strong>${dateStr}</strong> | ${event.eventname}</p>
+      <p>${timeStr}${event.description}</p>
+    `;
+    container.appendChild(div);
+  });
+}
+
+/* ================= REALTIME UPCOMING EVENTS ================= */
+supabaseClient
+  .channel("realtime-upcoming-events")
+  .on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "Event" },
+    () => {
+      loadUpcomingEvents();
+    }
+  )
+  .subscribe();
+
+/* ================= INITIAL LOAD ================= */
+loadUpcomingEvents();
+
+
+async function loadAttendanceSummary() {
+  const container = document.querySelector(".attendance-summary .summary-grid");
+  const student = JSON.parse(localStorage.getItem("adminUser"));
+  if (!student) return;
+
+  const studentFullName = `${student.firstname} ${student.lastname}`.trim();
+
+  console.log("=== Attendance Debugging ===");
+  console.log("Logged-in student:", studentFullName);
+
+  // Helper: Check if a value is a valid time (HH:MM or HH:MM:SS)
+  const isValidTime = (val) => {
+    if (!val) return false;
+    const timePattern = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
+    return timePattern.test(val.toString().trim());
+  };
+
+  try {
+    // Fetch all attendance rows matching the student's name (case-insensitive)
+    const { data: attendances, error } = await supabaseClient
+      .from("Attendance")
+      .select("*")
+      .ilike("studentname", studentFullName); // ignore studentid
+
+    if (error) {
+      console.error("Failed to load attendance:", error);
+      container.innerHTML = `
+        <div><p>Attended Complete</p><p>0</p></div>
+        <div><p>Missed / Incomplete</p><p>0</p></div>
+        <div><p>Total Events Recorded</p><p>0</p></div>
+      `;
+      return;
+    }
+
+    console.log(`Fetched ${attendances.length} attendance row(s):`, attendances);
+
+    let completeCount = 0;
+    let incompleteCount = 0;
+    const eventsMap = {};
+
+    if (attendances && attendances.length > 0) {
+      attendances.forEach((row, index) => {
+        const eventName = row.event;
+
+        if (!eventsMap[eventName]) {
+          const timeSlots = [
+            row.morningin, row.morningout,
+            row.afternoonin, row.afternoonout,
+            row.eveningin, row.eveningout
+          ];
+
+          // Log all column values for debugging
+          console.log(`Row ${index} event="${eventName}":`);
+          Object.keys(row).forEach(col => {
+            console.log(`   ${col}:`, row[col]);
+          });
+
+          const isComplete = timeSlots.every(isValidTime);
+
+          if (isComplete) completeCount++;
+          else incompleteCount++;
+
+          eventsMap[eventName] = true;
+          console.log(`Event "${eventName}" counted: complete=${isComplete}`);
+        }
+      });
+    } else {
+      console.log("No attendance rows found for this student. Marked as missed.");
+      incompleteCount = 1;
+    }
+
+    container.innerHTML = `
+      <div><p>Attended Complete</p><p>${completeCount}</p></div>
+      <div><p>Missed / Incomplete</p><p>${incompleteCount}</p></div>
+      <div><p>Total Events Recorded</p><p>${completeCount + incompleteCount}</p></div>
+    `;
+
+    console.log("Attendance summary rendered.");
+    console.log("Complete count:", completeCount);
+    console.log("Incomplete count:", incompleteCount);
+    console.log("Events recorded:", Object.keys(eventsMap));
+
+  } catch (err) {
+    console.error("Error loading attendance summary:", err);
+  }
+}
+
+/* ================= REALTIME ================= */
+loadAttendanceSummary();
+
+supabaseClient
+  .channel("realtime-attendance-summary")
+  .on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "Attendance" },
+    loadAttendanceSummary
+  )
+  .on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "Event" },
+    loadAttendanceSummary
+  )
+  .subscribe();
+
+// --- Load announcements dynamically ---
+async function loadAnnouncements() {
+    const container = document.querySelector(".announcement-card");
+    if (!container) return;
+
+    const student = JSON.parse(localStorage.getItem("adminUser"));
+    if (!student) return;
+
+    // YYYY-MM-DD (DATE-safe)
+    const todayDate = new Date().toISOString().slice(0, 10);
+
+    const fullName = `${student.firstname} ${student.lastname}`;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from("Announcement")
+            .select("id, text, type, visible_to, created_at")
+            .or(`visible_to.eq.everyone,visible_to.eq.${fullName}`)
+            .gte("created_at", todayDate); // today + upcoming
+
+        if (error) throw error;
+
+        // Remove old dynamic items
+        container.querySelectorAll(".announcement-item.dynamic").forEach(e => e.remove());
+
+        // No announcements
+        if (!data || data.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "announcement-item dynamic";
+            empty.innerHTML = `<p>No current Announcement.</p>`;
+            container.appendChild(empty);
+            return;
+        }
+
+        // Render announcements
+        data.forEach(ann => {
+            const icon =
+                ann.type === "qr_code" ? "qr_code" : "announcement";
+
+            const item = document.createElement("div");
+            item.className = "announcement-item dynamic";
+            item.innerHTML = `
+                <span class="material-icons announcement-icon">${icon}</span>
+                <p>${ann.text}</p>
+            `;
+            container.appendChild(item);
+        });
+
+    } catch (err) {
+        console.error("Failed to load announcements:", err);
+    }
+}
+
+// Initial load + auto-refresh
+loadAnnouncements();
+/* ================= REALTIME ANNOUNCEMENTS ================= */
+supabaseClient
+  .channel("realtime-announcements")
+  .on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "Announcement" },
+    () => {
+      loadAnnouncements();
+    }
+  )
+  .subscribe();
+
+
+</script>
+
+
+</body>
+</html>

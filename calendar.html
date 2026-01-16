@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Neu Calendar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="calendar.css">
+</head>
+<body>
+
+<div class="calendar-wrapper">
+
+  <!-- MAIN CALENDAR + EVENTS CONTAINER -->
+  <div class="calendar-app neu">
+
+    <!-- LEFT: Calendar -->
+    <div class="calendar-left">
+      <!-- TOP FRAME: Current time/date + Navigation + View -->
+      <div class="top-frame neu-inner">
+        <div class="current-info">
+          <div class="current-time-date">
+            <div id="currentTime">2:50 PM</div>
+            <div id="currentDate">Monday, December 2025</div>
+          </div>
+          <div class="dropdowns">
+            <select id="monthSelect"></select>
+            <select id="yearSelect"></select>
+          </div>
+        </div>
+
+        <div class="calendar-header">
+
+          <h2 id="currentLabel"></h2>
+          <div class="nav-buttons">
+            <button id="prevBtn">◀</button>
+            <button id="todayBtn">Today</button>
+            <button id="nextBtn">▶</button>
+          </div>
+        </div>
+        
+      </div>
+
+      <!-- SECOND FRAME: Dates -->
+      <div class="dates-frame neu-inner">
+        <div class="weekdays" id="weekdays">
+          <span>Sun</span><span>Mon</span><span>Tue</span>
+          <span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="calendar-body" id="calendarBody"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Events List -->
+<div class="events-right neu-inner">
+    <h3>Upcoming Events</h3>
+   <ul id="eventsList">
+    <li>Click a date to see events.</li>
+</ul>
+</div>
+
+
+  </div>
+</div>
+
+<!--<script src="script.js">-->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://snyzylwynzwzchivczms.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueXp5bHd5bnp3emNoaXZjem1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NTM5NDQsImV4cCI6MjA4MTAyOTk0NH0.QBBdQUqS_wpo6CTl4mppziCCbiigq8Fqg9KjsVfcmMM";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const body = document.getElementById('calendarBody');  
+const label = document.getElementById('currentLabel');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const todayBtn = document.getElementById('todayBtn');
+const monthSelect = document.getElementById('monthSelect');
+const yearSelect = document.getElementById('yearSelect');
+const weekdays = document.getElementById('weekdays');
+
+const currentTimeEl = document.getElementById('currentTime');
+const currentDateEl = document.getElementById('currentDate');
+
+const monthNames = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December"
+];
+
+let currentDate = new Date();
+let view = 'month'; // Only month view now
+
+/* Populate dropdowns */
+monthNames.forEach((m,i)=>{
+  const option = document.createElement('option');
+  option.value = i;
+  option.textContent = m;
+  monthSelect.appendChild(option);
+});
+for(let y=2000; y<=2030; y++){
+  const option = document.createElement('option');
+  option.value = y;
+  option.textContent = y;
+  yearSelect.appendChild(option);
+}
+monthSelect.value = currentDate.getMonth();
+yearSelect.value = currentDate.getFullYear();
+monthSelect.onchange = () => { currentDate.setMonth(parseInt(monthSelect.value)); render(); };
+yearSelect.onchange = () => { currentDate.setFullYear(parseInt(yearSelect.value)); render(); };
+
+/* Update current time/date display */
+function updateCurrentTime(){
+  const now = new Date();
+  const hour = now.getHours();
+  const min = now.getMinutes().toString().padStart(2,'0');
+  const hour12 = hour%12||12;
+  const ampm = hour<12?"AM":"PM";
+  currentTimeEl.textContent = `${hour12}:${min} ${ampm}`;
+  const dayName = now.toLocaleDateString('en-US',{weekday:'long'});
+  const monthName = now.toLocaleDateString('en-US',{month:'long'});
+  currentDateEl.textContent = `${dayName}, ${monthName} ${now.getFullYear()}`;
+}
+setInterval(updateCurrentTime,1000);
+updateCurrentTime();
+
+/* ================== FETCH EVENTS AND HIGHLIGHT DATES ================== */
+async function highlightEventDates() {
+    try {
+        // Fetch all events from Supabase
+        const { data: events, error } = await supabaseClient
+            .from("Event")
+            .select("startdate, enddate");
+
+        if (error) {
+            console.error("Error fetching events:", error);
+            return;
+        }
+
+        // Convert startdate/enddate strings to Date objects
+        const eventDates = [];
+        events.forEach(ev => {
+            const start = new Date(ev.startdate);
+            const end = new Date(ev.enddate);
+
+            // Add all dates between start and end inclusive
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                eventDates.push(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime());
+            }
+        });
+
+        // Highlight dates in calendar
+        document.querySelectorAll("#calendarBody .date").forEach(dateEl => {
+            const day = parseInt(dateEl.textContent);
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            const dateTime = new Date(year, month, day).getTime();
+
+            if (eventDates.includes(dateTime)) {
+                dateEl.classList.add("event-day"); // keeps your CSS highlight
+            } else {
+                dateEl.classList.remove("event-day"); // remove highlight if not event
+            }
+        });
+    } catch (err) {
+        console.error("Error in highlightEventDates:", err);
+    }
+}
+
+/* Render calendar */
+function render(){
+  body.innerHTML='';
+  weekdays.style.display='grid';
+  renderMonth();
+   highlightEventDates();
+}
+
+/* Month view */
+function renderMonth() {
+  label.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+
+  body.innerHTML = '';
+
+  // --- Previous month days ---
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const prevDate = new Date(year, month - 1, prevMonthDays - i);
+    body.innerHTML += `<div class="date muted" data-date="${prevDate.toISOString()}">${prevMonthDays - i}</div>`;
+  }
+
+  // --- Current month days ---
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    body.innerHTML += `<div class="date" data-date="${dateObj.toISOString()}">${d}</div>`;
+  }
+
+  // --- Next month days to fill 6 weeks ---
+  const totalCells = firstDay + daysInMonth;
+  const nextMonthDays = 42 - totalCells; 
+  for (let i = 1; i <= nextMonthDays; i++) {
+    const nextDate = new Date(year, month + 1, i);
+    body.innerHTML += `<div class="date muted" data-date="${nextDate.toISOString()}">${i}</div>`;
+  }
+
+  // After rendering, set up click events for all dates
+  setupEventClick(); // this ensures clicking past/future/current dates works
+}
+
+/* ================== DYNAMIC EVENT LIST ON CLICK (INCLUDE PAST EVENTS) ================== */
+async function setupEventClick() {
+    // Fetch all events once, including time columns
+    const { data: events, error } = await supabaseClient
+        .from("Event")
+        .select("eventname, startdate, enddate, organizer, description, morningin, afternoonout, eveningout");
+
+    if (error) {
+        console.error("Error fetching events:", error);
+        return;
+    }
+
+    const eventsList = document.getElementById("eventsList");
+
+    document.querySelectorAll("#calendarBody .date").forEach(dateEl => {
+        dateEl.onclick = () => {
+            const clickedDate = new Date(dateEl.dataset.date).setHours(0,0,0,0);
+
+            // Single-day events (start == end)
+            const singleDayEvents = events.filter(ev => {
+                const start = new Date(ev.startdate).setHours(0,0,0,0);
+                const end = new Date(ev.enddate).setHours(0,0,0,0);
+                return start === end && clickedDate === start;
+            });
+
+            // Multi-day events (clicked date is in the range)
+            const multiDayEvents = events.filter(ev => {
+                const start = new Date(ev.startdate).setHours(0,0,0,0);
+                const end = new Date(ev.enddate).setHours(0,0,0,0);
+                return start !== end && clickedDate >= start && clickedDate <= end;
+            });
+
+            const toDisplay = singleDayEvents.length > 0 ? singleDayEvents : multiDayEvents;
+
+            // Clear existing list
+            eventsList.innerHTML = '';
+
+            if (toDisplay.length === 0) {
+                eventsList.innerHTML = '<li>No events on this date.</li>';
+                return;
+            }
+
+            toDisplay.forEach(ev => {
+                const start = new Date(ev.startdate);
+                const end = new Date(ev.enddate);
+
+                // --- Start time: morningin of clicked day ---
+                let startTimeParts = ev.morningin ? ev.morningin.split(":") : ["08","30"];
+                const startTime = new Date(
+                    clickedDate ? clickedDate : start.getTime()
+                );
+                startTime.setHours(parseInt(startTimeParts[0]), parseInt(startTimeParts[1]));
+                const startTimeStr = startTime.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+                // --- End time: afternoonout/eveningout of last day ---
+                let endTimeValue = ev.eveningout || ev.afternoonout || "16:30";
+                let endTimeParts = endTimeValue.split(":");
+                const endTime = new Date(end);
+                endTime.setHours(parseInt(endTimeParts[0]), parseInt(endTimeParts[1]));
+                const endTimeStr = endTime.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+                // --- Display date: clicked date if multi-day, else actual start date ---
+                let displayDate = (start.toDateString() === end.toDateString()) 
+                    ? start.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+                    : new Date(clickedDate).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="event-title">🎉 ${ev.eventname}</div>
+                    <div class="event-date-time">📅 ${displayDate} | ${startTimeStr} - ${endTimeStr}</div>
+                    <div class="event-organizer">👤 ${ev.organizer || 'N/A'}</div>
+                    <div class="event-description">${ev.description}</div>
+                `;
+                eventsList.appendChild(li);
+            });
+        };
+    });
+}
+
+// Call after rendering the calendar
+render();
+setupEventClick();
+
+/* Navigation */
+prevBtn.onclick = () => {
+  currentDate.setMonth(currentDate.getMonth()-1);
+  render();
+};
+nextBtn.onclick = () => {
+  currentDate.setMonth(currentDate.getMonth()+1);
+  render();
+};
+todayBtn.onclick = () => { 
+  currentDate = new Date(); 
+  render(); 
+};
+/* ================= REALTIME TODAY EVENTS ================= */
+supabaseClient
+  .channel("realtime-today-events")
+  .on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "Event" },
+    () => {
+      render();
+    }
+  )
+  .subscribe();
+
+render();
+
+</script>
+
+
+</body>
+</html>

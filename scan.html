@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Student Info</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<h2>Scan QR to view student info</h2>
+
+<!-- Input for QR scanning -->
+<input type="text" id="qrInput" placeholder="Scan QR code here" autofocus>
+<button id="scanBtn">Show Info</button>
+
+<!-- Container for student info -->
+<div id="studentInfoContainer"></div>
+
+<script>
+const SUPABASE_URL = "https://snyzylwynzwzchivczms.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueXp5bHd5bnp3emNoaXZjem1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NTM5NDQsImV4cCI6MjA4MTAyOTk0NH0.QBBdQUqS_wpo6CTl4mppziCCbiigq8Fqg9KjsVfcmMM";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const qrInput = document.getElementById("qrInput");
+const scanBtn = document.getElementById("scanBtn");
+const studentInfoContainer = document.getElementById("studentInfoContainer");
+
+scanBtn.addEventListener("click", () => handleScannedQR(qrInput.value));
+
+async function handleScannedQR(qrContent) {
+    try {
+        const parts = qrContent.split(":");
+        if (parts[0] !== "student") throw new Error("Invalid QR code");
+
+        const studentId = parseInt(parts[1]);
+
+        const { data, error } = await supabaseClient
+            .from("Student")
+            .select("id, firstname, middlename, lastname, extension, email, studentid, course, year, gender, picture, organizer")
+            .eq("id", studentId)
+            .single();
+
+        if (error || !data) throw new Error("Student not found");
+
+        studentInfoContainer.innerHTML = `
+            <p><strong>ID:</strong> ${data.id}</p>
+            <p><strong>Student ID:</strong> ${data.studentid}</p>
+            <p><strong>Name:</strong> ${data.firstname} ${data.middlename} ${data.lastname} ${data.extension || ""}</p>
+            <p><strong>Email:</strong> ${data.email}</p>
+            <p><strong>Course:</strong> ${data.course}</p>
+            <p><strong>Year:</strong> ${data.year}</p>
+            <p><strong>Gender:</strong> ${data.gender}</p>
+            <p><strong>Organizer:</strong> ${data.organizer}</p>
+            ${data.picture ? `<p><strong>Picture:</strong><br><img src="${data.picture}" alt="Student Picture" style="width:120px;height:120px;"></p>` : ""}
+        `;
+    } catch (err) {
+        studentInfoContainer.innerHTML = `<p style="color:red;">${err.message}</p>`;
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scanner UI</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
+.container { display: flex; padding: 40px; gap: 40px; height: 100vh; box-sizing: border-box; }
+.scanner-box { flex: 1.4; }
+.scanner-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; }
+
+/* Scan area */
+.scan-area { height: 400px; position: relative; border-radius: 20px; overflow: hidden; background: #000; }
+
+/* corners overlay */
+.corner { width: 65px; height: 65px; border: 5px solid rgba(0,255,0,0.7); position: absolute; border-radius: 10px; z-index: 2; }
+.tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+.tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+.bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+.br { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+/* QR Reader */
+#qr-reader { 
+  width: 100%; 
+  height: 100%; 
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  z-index: 1;
+  transform: scaleX(1);
+ }
+/* overlay canvas for drawing QR bounding box */
+#qr-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* click-through */
+  z-index: 2;
+}
+
+/* Buttons */
+#closeScanner {
+  display: none;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  padding: 6px 10px;
+  font-size: 14px;
+  border: none;
+  background: #e53e3e;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#openScannerBtn {
+  margin-top: 15px;
+  padding: 14px 22px;
+  background: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+
+.scan-input { margin-top: 22px; display: flex; gap: 12px; }
+input { flex: 1; padding: 14px; font-size: 15px; border-radius: 10px; border: 1px solid #ccc; }
+button.scan-submit { padding: 14px 22px; background: #38a169; color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; }
+
+/* RIGHT SIDE */
+.right-section { flex: 1; display: flex; flex-direction: column; }
+.profile-card { height: 280px; border-radius: 20px; padding: 18px; text-align: center; color: rgb(43,28,28); position: relative; overflow: hidden; background-image: url("images/background-particles.jpg"); background-size: cover; background-position: center; }
+.profile-card::before { content:""; position:absolute; inset:0; background: linear-gradient(to bottom, rgba(187,186,186,0.25), rgba(206,206,206,0.7)); z-index:1; }
+.profile-content { position: relative; z-index: 2; }
+.profile-image { width: 170px; height:170px; border-radius:50%; object-fit: cover; border:3px solid rgb(25,64,9); }
+.profile-name { font-size:18px; font-weight:bold; margin-top:10px; }
+.profile-info { font-size:13px; opacity:0.9; }
+
+.recent-box { margin-top:20px; background:white; border-radius:16px; padding:20px; height:320px; overflow:hidden; }
+.recent-title { font-size:17px; font-weight:bold; margin-bottom:16px; }
+.recent-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #e5e5e5; }
+.recent-item:last-child { border-bottom:none; }
+.recent-img { width:48px; height:48px; border-radius:50%; object-fit:cover; }
+.recent-details { font-size:14px; line-height:1.2; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="scanner-box">
+    <div class="scanner-title">Scanner</div>
+    <div class="scan-area" id="scanArea">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div id="qr-reader"><div class="qr-overly"></div></div>
+      <button id="closeScanner">Close</button>
+    </div>
+    <div class="scan-input">
+      <input id="scanInput" type="text" placeholder="Enter QR Number (e.g. student:001)">
+      <button class="scan-submit" id="scanBtn">Submit Scan</button>
+    </div>
+  </div>
+
+  <div class="right-section">
+    <div class="profile-card">
+      <div class="profile-content">
+        <img src="images/your-pfp.jpg" class="profile-image">
+        <div class="profile-name">No student scanned</div>
+        <div class="profile-info">Please scan a QR code</div>
+      </div>
+    </div>
+    <div class="recent-box">
+      <div class="recent-title">RECENTLY SCANNED STUDENT</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/jsQR.js"></script> <!-- Use local file -->
+
+<script>
+const SUPABASE_URL = "https://snyzylwynzwzchivczms.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueXp5bHd5bnp3emNoaXZjem1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NTM5NDQsImV4cCI6MjA4MTAyOTk0NH0.QBBdQUqS_wpo6CTl4mppziCCbiigq8Fqg9KjsVfcmMM";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const qrReaderDiv = document.getElementById("qr-reader");
+  const profileImg = document.querySelector(".profile-image");
+  const profileName = document.querySelector(".profile-name");
+  const profileInfo = document.querySelector(".profile-info");
+  const recentBox = document.querySelector(".recent-box");
+  const beep = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=");
+
+  let videoStream = null;
+  let scanning = false;
+  let lastScanned = "";
+  let lastScanTime = 0;
+
+  /* ================= OVERLAY CANVAS ================= */
+  const overlayCanvas = document.createElement("canvas");
+  overlayCanvas.id = "qr-overlay";
+  overlayCanvas.style.position = "absolute";
+  overlayCanvas.style.top = "0";
+  overlayCanvas.style.left = "0";
+  overlayCanvas.style.width = "100%";
+  overlayCanvas.style.height = "100%";
+  overlayCanvas.style.pointerEvents = "none";
+  qrReaderDiv.appendChild(overlayCanvas);
+  const overlayCtx = overlayCanvas.getContext("2d");
+
+  /* ================= VIDEO ================= */
+  const video = document.createElement("video");
+  video.style.width = "100%";
+  video.style.height = "100%";
+  video.style.objectFit = "contain";
+  video.setAttribute("playsinline", true);
+  qrReaderDiv.appendChild(video);
+
+  /* ================= CANVAS FOR SCANNING ================= */
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+const lastScannedMap = {}; // global
+
+  /* ================= HANDLE SCAN ================= */
+  window.handleScan = async function(qrContent) { // make global
+    const now = Date.now();
+    if (lastScannedMap[qrContent] && now - lastScannedMap[qrContent] < 3600000) {
+    console.warn("Scan ignored: QR blocked for 1 hour");
+    return;
+  }
+
+  lastScannedMap[qrContent] = now; // update last scan time
+  beep.play();
+
+    try {
+      const parts = qrContent.split(":");
+      if (parts[0] !== "student") throw new Error("Invalid QR code");
+
+      const studentid = parts[1];
+
+      const { data, error } = await supabaseClient
+        .from("Student")
+        .select("firstname, middlename, lastname, extension, studentid, course, year, picture")
+        .eq("studentid", studentid)
+        .single();
+
+      if (error || !data) throw new Error("Student not found");
+
+      // Update profile display
+      profileImg.src = data.picture || "images/placeholder.jpg";
+      profileName.textContent =
+        `${data.firstname} ${data.middlename || ""} ${data.lastname} ${data.extension || ""}`.trim();
+      profileInfo.textContent =
+        `${data.course} · ${data.year} | ID: ${data.studentid}`;
+
+      // Add to recent scans
+      const item = document.createElement("div");
+      item.className = "recent-item";
+      item.innerHTML = `
+        <img src="${data.picture || "images/placeholder.jpg"}" class="recent-img">
+        <div class="recent-details">
+          ${data.firstname} ${data.lastname}<br>
+          ${data.course} · ${data.year}<br>
+          ID: ${data.studentid}
+        </div>
+      `;
+
+      const title = recentBox.querySelector(".recent-title");
+      recentBox.insertBefore(item, title.nextSibling);
+
+      const items = recentBox.querySelectorAll(".recent-item");
+      if (items.length > 3) items[items.length - 1].remove();
+
+    } catch (err) {
+      console.warn("Scan ignored:", err.message);
+    }
+  };
+
+  /* ================= START CAMERA ================= */
+  async function startCamera() {
+    if (videoStream) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cam = devices.find(d => d.kind === "videoinput");
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: cam.deviceId },
+        audio: false
+      });
+
+      video.srcObject = stream;
+      videoStream = stream;
+      try {
+        await video.play();
+      } catch(err) {
+        console.warn("Video playback interrupted:", err);
+      }
+
+      overlayCanvas.width = video.videoWidth;
+      overlayCanvas.height = video.videoHeight;
+
+      scanning = true;
+      requestAnimationFrame(scanFrame);
+    } catch (err) {
+      alert("Camera access failed: " + err.message);
+    }
+  }
+
+  function stopCamera() {
+    scanning = false;
+    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  }
+
+  function scanFrame() {
+    if (!scanning) return;
+
+    if (video.videoWidth && video.videoHeight) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.save();
+      ctx.scale(-1, 1); // mirror for scanning
+      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+
+      overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+      if (code) {
+        const scaleX = overlayCanvas.width / video.videoWidth;
+        const scaleY = overlayCanvas.height / video.videoHeight;
+
+        overlayCtx.strokeStyle = "#00FF00";
+        overlayCtx.lineWidth = 4;
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(code.location.topLeftCorner.x * scaleX, code.location.topLeftCorner.y * scaleY);
+        overlayCtx.lineTo(code.location.topRightCorner.x * scaleX, code.location.topRightCorner.y * scaleY);
+        overlayCtx.lineTo(code.location.bottomRightCorner.x * scaleX, code.location.bottomRightCorner.y * scaleY);
+        overlayCtx.lineTo(code.location.bottomLeftCorner.x * scaleX, code.location.bottomLeftCorner.y * scaleY);
+        overlayCtx.closePath();
+        overlayCtx.stroke();
+
+        handleScan(code.data);
+      }
+    }
+
+    requestAnimationFrame(scanFrame);
+  }
+
+  // Auto start camera
+  qrReaderDiv.style.display = "block";
+  startCamera();
+  window.addEventListener("beforeunload", stopCamera);
+
+  /* ================= INPUT / BUTTON SIMULATION ================= */
+  const scanInput = document.getElementById("scanInput");
+  const scanBtn = document.getElementById("scanBtn");
+
+  function submitScan() {
+    const qrContent = scanInput.value.trim();
+    if (!qrContent) return;
+    handleScan(qrContent);
+    scanInput.value = "";
+  }
+
+  scanBtn.addEventListener("click", submitScan);
+  scanInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitScan();
+  });
+
+});
+</script>
+
+
+</body>
+</html>

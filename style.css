@@ -1,0 +1,414 @@
+/* === GENERAL === */ 
+body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    color: #1b1b1b;
+    position: relative;
+    overflow-x: hidden;
+    background: 
+        linear-gradient(to bottom, rgba(213, 255, 213, 0.7) 0%, rgba(255, 255, 255, 0.7) 100%),
+        url('images/background-particles.jpg') no-repeat center center;
+    background-size: 100% 100%;
+    background-attachment: fixed;
+}
+
+/* === LAYOUT === */
+.layout {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    height: 100vh;
+    transition: grid-template-columns 0.3s ease;
+    position: relative;
+}
+
+.layout.collapsed {
+    grid-template-columns: 90px 1fr;
+}
+
+/* === SIDEBAR === */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 180px;
+    transition: width 0.3s ease;
+    padding: 20px;
+    box-sizing: border-box;
+    align-items: flex-start;
+}
+/* --- Sidebar Menu Icons --- */
+.sidebar .menu-item svg {
+    width: 20px;  /* shrink the icon width */
+    height: 20px; /* shrink the icon height */
+}
+
+/* Shrink profile dropdown icons */
+.profile-dropdown svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Shrink 3-dot profile button (if using Feather icon) */
+.profile-menu-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Optional: reduce gap between icon and text */
+.menu-item {
+    gap: 6px;
+}
+
+/* --- Logo --- */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    padding-bottom: 10px;
+    padding-left: 10px;
+}
+
+.logo-img {
+    width: 25px;
+    height: 25px;
+    object-fit: contain;
+}
+
+.sidebar.collapsed .logo-text {
+    display: none;
+}
+
+/* --- Sidebar Sections --- */
+.sidebar-section {
+    width: 100%;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.section-title {
+    font-size: 9px;
+    color: #484343;
+    margin-bottom: 10px;
+    display: block;
+    text-align: left;
+}
+
+/* --- Menu Items --- */
+.menu-item {
+    padding: 10px 12px;
+    border-radius: 10px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    cursor: pointer;
+    font-size: 12px;
+    color: #444;
+    width: 100%;
+    justify-content: flex-start;
+}
+
+.menu-item.active {
+    background: white;
+    font-weight: 600;
+}
+
+.menu-item:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.sidebar.collapsed .menu-item span {
+    display: none;
+}
+
+.layout.collapsed .menu-item.active {
+    width: 30px;
+    font-weight: 600;
+    padding-left: 14px;
+}
+
+.layout.collapsed .menu-item:hover {
+    width: 30px;
+}
+
+/* --- Profile Box --- */
+.profile-box { 
+    margin-top: auto;
+    background: #8eee8e3d;
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: calc(100% - 0px);
+    justify-content: flex-start;
+}
+
+.profile-photo {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-info span {
+    font-size: 10px;
+    color: #777;
+}
+/* Shrink profile name and email */
+.profile-box strong {
+    font-size: 10px;  /* smaller name */
+}
+
+.profile-box span {
+    font-size: 10px;  /* smaller email */
+}
+.sidebar.collapsed .profile-info {
+    display: none;
+}
+
+.layout.collapsed .profile-box {
+    width: 60px;
+    justify-content: center;
+    padding: 12px 6px;
+}
+.icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+     /* default icon color */
+    filter: invert(33%) sepia(8%) saturate(500%) hue-rotate(90deg);
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+/* === MAIN CONTENT === */
+.content {
+    display: flex;
+    width: 100%;
+    padding-left: 0;
+}
+
+.personal-frame {
+    width: 100%;
+    margin: 20px;
+    padding: 0;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 40px);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.main-iframe {
+    border: none;
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+}
+
+/* --- Toggle Button --- */
+.toggle-btn {
+    position: absolute;
+    left: 195px;
+    top: 50px;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    border-radius: 100%;
+    background: #ffffff;
+    color: #2e7d32;
+    font-weight: 600;
+    font-size: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    letter-spacing: 1px;
+    border: 2px solid #e4eae4;
+    z-index: 999;
+    transition: left 0.3s ease;
+}
+
+.layout.collapsed .toggle-btn {
+    left: 90px;
+}
+
+/* --- 3-dot Button --- */
+.profile-menu-btn {
+    margin-left: auto;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.layout.collapsed .profile-menu-btn {
+    display: none;
+}
+
+/* --- Dropdown Menu --- */
+.profile-dropdown {
+    position: absolute;
+    bottom: 60px;
+    left: 170px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 100px;
+    z-index: 1000;
+}
+
+.profile-dropdown a {
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #333;
+    font-size: 10px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-dropdown a:hover {
+    background: #e4f2e4;
+}
+
+.layout.collapsed .profile-dropdown {
+    left: 10px;
+}
+
+/* =========================
+   MOBILE MODE
+========================= */
+.mobile-menu-btn {
+    display: none;
+}
+
+@media (max-width: 768px) {
+
+    .mobile-menu-btn {
+        display: flex;
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 1;
+       
+        border: none;
+        border-radius: 10px;
+        width: 42px;
+        height: 42px;
+        justify-content: center;
+        align-items: center;
+      
+        cursor: pointer;
+        padding-left: 18px;
+        
+    }
+
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: 1500;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        border-radius: 0;
+        padding-left: 16px;
+        padding-right: 16px;
+        box-sizing: border-box;
+        background: 
+            linear-gradient(to bottom, rgba(213, 255, 213, 0.7) 0%, rgba(255, 255, 255, 0.7) 100%),
+            url('images/background-particles.jpg') no-repeat center center;
+        background-size: cover;
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .toggle-btn {
+        display: none;
+    }
+
+    .content {
+        padding: 0;
+        margin: 0;
+    }
+
+    .personal-frame {
+        margin: 0;
+        border-radius: 0;
+        height: 100vh;
+        box-shadow: none;
+    }
+
+    .main-iframe {
+        border-radius: 0;
+    }
+
+    .profile-dropdown {
+        position: absolute;
+        bottom: auto;
+        top: auto;
+        right: 20px;
+        left: auto;
+        margin-bottom: 60px;
+        min-width: 140px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        background: white;
+        display: none;
+        flex-direction: column;
+        z-index: 2000;
+    }
+
+    .profile-box {
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        padding: 12px 16px;
+        background: #8eee8e3d;
+        border-radius: 12px;
+        box-sizing: border-box;
+    }
+
+    .menu-item,
+    .menu-item.active,
+    .menu-item:hover {
+        width: 100%;
+        padding-left: 12px;
+        padding-right: 12px;
+        box-sizing: border-box;
+    }
+
+    .profile-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .profile-info span {
+        display: block;
+        font-size: 12px;
+        color: #777;
+        margin-top: 2px;
+    }
+}

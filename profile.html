@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Profile Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; font-family: 'Inter', sans-serif; margin:0; padding:0; }
+
+html, body { height: 100%; }
+
+body {
+    background: #f6f6f6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    padding: 20px;
+}
+
+.scroll-wrapper {
+    width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    scrollbar-width: none;
+}
+.scroll-wrapper::-webkit-scrollbar { display: none; }
+
+.container {
+    width: 900px;
+    max-width: 95%;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid #d1d1d1;
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    align-self: flex-start;
+    transition: 0.2s;
+}
+.back-btn:hover { background: #f0f0f0; }
+.back-btn img { width: 16px; height: 16px; }
+
+.card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    padding: 25px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #222;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    justify-content: space-between;
+}
+
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.profile-info img {
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 2px solid #66bb6a;
+    transition: 0.2s;
+}
+
+.profile-info div h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #222;
+}
+
+.profile-info div p {
+    font-size: 14px;
+    color: #555;
+    margin: 4px 0;
+}
+
+.edit-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: 0.2s;
+}
+
+.edit-btn img {
+    width: 20px;
+    height: 20px;
+    filter: grayscale(100%) brightness(50%);
+}
+.edit-btn:hover img {
+    filter: grayscale(0%) brightness(50%) sepia(1) hue-rotate(180deg);
+}
+
+.details-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 30px;
+}
+
+.details-container label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #444;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.details-container input, .details-container select {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    width: 100%;
+    transition: border 0.2s, box-shadow 0.2s;
+}
+
+.details-container input:focus, .details-container select:focus {
+    border-color: #66bb6a;
+    box-shadow: 0 0 8px rgba(102,187,106,0.2);
+    outline: none;
+}
+
+.details-container input[readonly], .details-container select[disabled] {
+    background-color: #f7f7f7;
+    cursor: not-allowed;
+}
+
+.profile-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.profile-preview img {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 2px solid #66bb6a;
+}
+
+.upload-btn {
+    background: #66bb6a;
+    color: #fff;
+    padding: 5px;
+    border-radius: 6px;
+    cursor: pointer;
+    width: fit-content;
+    text-align: center;
+}
+.upload-btn:hover { background: #57a05a; }
+input[type="file"] { display: none; }
+
+.action-buttons {
+    display: none;
+    justify-content: flex-end;
+    gap: 15px;
+}
+
+.action-buttons button {
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+.save-btn { background: #66bb6a; color: #fff; }
+.save-btn:hover { background: #57a05a; }
+.cancel-btn { background: #f44336; color: #fff; }
+.cancel-btn:hover { background: #d32f2f; }
+
+@media (max-width: 768px) {
+    .container { width: 100%; padding: 20px; }
+    .details-container { grid-template-columns: 1fr; }
+    .profile-info img { width: 60px; height: 60px; }
+    .profile-info div h2 { font-size: 16px; }
+    .edit-btn img { width: 16px; height: 16px; }
+}
+@media (max-width: 480px) {
+    .profile-info img { width: 50px; height: 50px; }
+    .profile-info div h2 { font-size: 14px; }
+    .edit-btn img { width: 14px; height: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="scroll-wrapper">
+<div class="container">
+
+    <a class="back-btn" href="index.html">
+        <img src="feather/arrow-left.svg" alt="Back"> Back
+    </a>
+
+    <div class="card">
+        <h3>Student Profile</h3>
+        <div class="profile-header">
+            <div class="profile-info">
+                <img id="profilePicDisplay" src="images/your-pfp.jpg" alt="Profile Picture">
+                <div>
+                    <h2 id="fullNameDisplay">Student Name</h2>
+                    <p id="emailDisplay">student@email.com</p>
+                    <p id="studentIDDisplay">ID: 20251234</p> <!-- Added Student ID display -->
+                </div>
+            </div>
+            <button class="edit-btn" onclick="enableEdit()">
+                <img src="feather/edit.svg" alt="Edit">
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Personal & Account Information</h3>
+<div class="details-container">
+    <div><label>First Name</label><input type="text" id="firstName" value="John" readonly></div>
+    <div><label>Middle Name</label><input type="text" id="middleName" value="A." readonly></div>
+    <div><label>Last Name</label><input type="text" id="lastName" value="Doe" readonly></div>
+    <div><label>Extension</label><input type="text" id="extension" value="" readonly></div>
+    <div><label>Email</label><input type="email" id="emailField" value="student@email.com" readonly></div>
+    <div><label>Student ID Number</label><input type="text" id="studentID" value="20251234" readonly></div>
+    <div><label>Course</label><input type="text" id="course" value="BSCS" readonly></div>
+    <div><label>Year</label><input type="number" id="year" value="2" readonly></div>
+    <div><label>Gender</label>
+        <select id="gender" disabled>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Non-Binary</option>
+            <option>Intersex</option>
+            <option>Genderfluid</option>
+            <option>Agender</option>
+            <option selected>Prefer not to say</option>
+        </select>
+    </div>
+    <div><label>Birthday</label><input type="date" id="birthday" value="2003-01-01" readonly></div>
+    <div><label>Address</label><input type="text" id="address" value="123 Main St" readonly></div>
+
+    <div><label>Profile Picture</label>
+        <div class="profile-container">
+            <div class="profile-preview">
+                <img id="profileImage" src="images/your-pfp.jpg">
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:5px;">
+                <input type="text" id="fileName" placeholder="No file chosen" readonly>
+                <label for="profileUpload" class="upload-btn">Upload</label>
+                <input type="file" id="profileUpload" accept="image/*" onchange="previewProfile(event)" disabled>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    <div class="action-buttons">
+        <button class="save-btn" onclick="saveProfile()">Save Changes</button>
+        <button class="cancel-btn" onclick="cancelEdit()">Cancel</button>
+    </div>
+
+</div>
+</div>
+
+<script>
+function enableEdit() {
+    document.querySelectorAll('.details-container input').forEach(i => i.removeAttribute('readonly'));
+    document.querySelectorAll('.details-container select').forEach(i => i.removeAttribute('disabled'));
+    document.getElementById('profileUpload').removeAttribute('disabled');
+    document.querySelector('.action-buttons').style.display = 'flex';
+}
+
+function cancelEdit() { location.reload(); }
+
+function saveProfile() {
+    document.querySelectorAll('.details-container input').forEach(i => i.setAttribute('readonly',''));
+    document.querySelectorAll('.details-container select').forEach(i => i.setAttribute('disabled',''));
+    document.getElementById('profileUpload').setAttribute('disabled','');
+    document.querySelector('.action-buttons').style.display = 'none';
+
+    document.getElementById('fullNameDisplay').innerText =
+        document.getElementById('firstName').value + " " +
+        document.getElementById('middleName').value + " " +
+        document.getElementById('lastName').value;
+    document.getElementById('emailDisplay').innerText = document.getElementById('emailField').value;
+    document.getElementById('studentIDDisplay').innerText = "ID: " + document.getElementById('studentID').value; // Update Student ID display
+
+    alert("Profile saved (UI only).");
+}
+
+function previewProfile(event) {
+    const reader = new FileReader();
+    reader.onload = () => document.getElementById('profileImage').src = reader.result;
+    reader.readAsDataURL(event.target.files[0]);
+    const file = event.target.files[0];
+    document.getElementById('fileName').value = file ? file.name : "No file chosen";
+}
+</script>
+
+</body>
+</html>
